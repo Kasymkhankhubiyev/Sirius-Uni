@@ -47,7 +47,7 @@ def normalize(alpha: np.array) -> np.array:
         return alpha_states_normalized
 
 
-def make_alphas_state_matrix(df: pd.DataFrame, days_step: int, strategy=None):
+def make_alphas_state_matrix_with_day_step(df: pd.DataFrame, days_step: int, strategy=None):
     instruments_number = df.shape[0]
     dates = df.columns[1:]
     alpha_states = np.zeros((df.shape[1]-1, instruments_number))
