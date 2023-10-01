@@ -24,6 +24,27 @@ def neutralize(alpha: np.array) -> np.array:
     else: # if alpha is a matrix of states
         alpha_states_neutralized = np.array([neutralize(_alpha) for _alpha in alpha])
         return alpha_states_neutralized
+    
+
+def neutralize_with_dropout(alpha, true_false_vector):
+    """
+        Функция  нейтрализации с выбросом - т.е. сохраняем нули в указанных позициях.
+    """
+
+    indexes = np.array([
+        np.array([j for j in range(len(true_false_vector[i])) if true_false_vector[i][j] == 1])
+                for i in range(len(true_false_vector))])
+    
+    _alpha = np.array(np.array([alpha[i][indexes[i]] for i in range(len(indexes))]))
+    _alpha = neutralize(_alpha)
+
+    for i, (_index, sub_alpha) in enumerate(zip(indexes, alpha)):
+        for _idx, idx in enumerate(_index):
+            sub_alpha[idx] = _alpha[i][_idx]
+        
+    alpha = normalize(alpha)
+
+    return alpha
 
 
 def normalize(alpha: np.array) -> np.array:
@@ -53,8 +74,8 @@ def make_alphas_state_matrix_with_day_step(df: pd.DataFrame, days_step: int, str
     instruments_number = df.shape[0]
     dates = df.columns[1:]
     alpha_states = np.zeros((df.shape[1]-1, instruments_number))
-    for i in range(days_step, len(dates)):
-        alpha_states[i] += normalize(neutralize(strategy(df, dates[i - days_step], dates[i-1])))
+    for i in range(days_step-1, len(dates)):
+        alpha_states[i] = normalize(neutralize(strategy(df, dates[i - days_step], dates[i-1])))
 
     return alpha_states
 
@@ -280,9 +301,6 @@ def AlphaStats(alpha_states, df):
         # get cumpnl_vector
         current_alpha_cumpnl_vec = cumulative_pnl(current_alpha_pnl)
 
-        # add the year's cumpnl
-        annual_cumpnl.append(current_alpha_cumpnl_vec[-1])
-
         # add the year's sharpe
         annual_sharpe.append(calc_sharpe(current_alpha_pnl))
 
@@ -301,14 +319,20 @@ def AlphaStats(alpha_states, df):
         # concate cumpnl_vec
         cumpnl = np.concatenate((cumpnl, current_alpha_cumpnl_vec + cumpnl[-1]), axis=None)
 
+        # add the year's cumpnl
+        annual_cumpnl.append(cumpnl[-1])
+
     # draw cumpnl
     draw_cumpnl(df, cumpnl[1:], df.columns[1:])
+
+    print(annual_cumpnl)
 
     # return annual data as pd.DataFrame
     annual_df = pd.DataFrame({'Year': dates_years,
                              'Sharpe': annual_sharpe,
                              'Average Turnover': ave_annual_turnover,
-                             'Max Drawdown': annual_drawdown})
+                             'Max Drawdown': annual_drawdown,
+                             'Cumpnl': annual_cumpnl})
 
     return annual_df
 
