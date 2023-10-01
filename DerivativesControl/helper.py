@@ -62,7 +62,19 @@ def make_alphas_state_matrix_with_day_step(df: pd.DataFrame, days_step: int, str
 def instrument_return(df=None, close_prices=None):
 
     """
-        Income(\alpha_i) = \frac{\alpha_i(d)}{\alpha_i(d-1)}
+        Функция рассчитывает матрицу доходностей инструментов по формуле:
+
+        math:: `Income(\alpha_i) = \frac{\alpha_i(d)}{\alpha_i(d-1)}`
+
+        Аргументы:
+            df, pandas.DataFrame - кадр данных со значениями цен закрытия по каждому инструменту,
+                                если не пустое значение, то получаем данные их кадра
+
+            close_prices, numpy.array - матрица цен закрытия инструментов по дням размера
+                                (кол-во дней, кол-во инструментов). Выбирается это если не 
+                                передан кадр данных
+
+        Возвращаемое значение:
     """
     if df is not None:
         # получим матрицу цен закрытия по всем инструментам за каждый день
@@ -81,6 +93,9 @@ def instrument_return(df=None, close_prices=None):
 
 
 def alpha_income(alpha_states, return_vector):
+    """
+        Функция расчета доходности альфы.
+    """
     alpha_income_vector = np.zeros(alpha_states.shape[0])
     for i in range(len(alpha_states)-1):
         alpha_income_vector[i] += np.dot(alpha_states[i],return_vector[i+1])
@@ -89,6 +104,9 @@ def alpha_income(alpha_states, return_vector):
 
 
 def turnover(alpha_states_matrix):
+    """
+        Функция считает оборот альфы.
+    """
     turnover_vec = np.zeros(len(alpha_states_matrix))
     for i in range(1, len(alpha_states_matrix)):
         turnover_vec[i] += np.sum(np.abs(alpha_states_matrix[i] - alpha_states_matrix[i-1]))
@@ -98,19 +116,41 @@ def turnover(alpha_states_matrix):
 
 def calc_sharpe(alpha_pnl_vec):
     """
+        Функция считает коэффициент Шарпа для альфы по введенному вектору доходностей по формуле:
+
         math:: `Sharpe = \sqrt(T)\frac{mean(pnl)}{std(pnl)}`
         math:: `mean(pnl) = \frac{\Sigma_{i=1}^Tpnl_i}{T}`
         math:: `std(pnl) = \sqrt{\frac{1}{T-1}\Sigma_{i=0}^T(pnl_i - mean(pnl))^2}`
+
+        Аргументы:
+            alpha_pnl_vec, numpy.array - вектор доходностей альфы.
+
+        Возвращаемое значение:
+            sharpe, float - коэффициент Шарпа.
     """
 
+    # Несмещенное стандартное отклонение
     std = np.sqrt(np.sum((alpha_pnl_vec - alpha_pnl_vec.mean())**2) / (len(alpha_pnl_vec) - 1))
 
+    # теперь получим коэффициент Шарпа
     sharpe = len(alpha_pnl_vec)**0.5 * alpha_pnl_vec.mean() / std
     
     return sharpe
 
 
 def cumulative_pnl(income_vector):
+    """
+        Функция расчета накопленной (кумулятивной) доходности. 
+        Расчитывается по формуле:
+        math:: ``
+
+        Аргументы:
+            income_vector, numpy.array - вектор доходности альфы
+
+        Возвращаемое значение:
+            cumpnl, numpy.array - вектор кумулятивной доходности альфы
+
+    """ 
     cumpnl = np.zeros(len(income_vector))
     cumpnl[0] = income_vector[0]
 
@@ -121,6 +161,28 @@ def cumulative_pnl(income_vector):
 
 
 def find_drawdown(cumpnl_vec: np.array):
+    """
+        Функция поиска максимальной просадки.
+
+        Алгоритм:
+            1. Создаем две переменные для хранения максимальной просадки и
+               максимального значения вектора накопленной доходности в текущий момент.
+            2. Итеративно проходим по всем точка вектора кумулятивной доходности и
+                2.1. Если текущее значение кумулятивной доходности превышает максимальное,
+                перезапишем. Это условие говорит о том, что сейчас график идет в рост и 
+                падения не на наблюдается.
+                2.2. Если разница между максимальным и текущим значениями кумулятивной доходности
+                превышают максимальную просадку - перезаписываем значение максимальной просадки.
+                2.3. Если ни одно условие не выполнилось, делаем шаг и повторяем.
+
+        Аргументы:
+            cumpbl_vector, numpy.array - вектор кумулятивной доходности альфы
+
+        Возвращаемое значение:
+            max_drawdown, float - величина максимальной просадки
+            drawdown_start, float - точка максимума просадки как значение кумулятивной доходности
+            drawdown_end, float - точки минимума просадки как значение кумулятивной доходности
+    """
     max_drawdown, max_cumpnl = 0, 0
     drawdown_start, draw_down_end = 0, 0
     
@@ -137,6 +199,17 @@ def find_drawdown(cumpnl_vec: np.array):
 
 
 def count_instruments_volatility (instruments_incomes):
+    """
+        Функция посчета волатильности интсрументов как стандартное отклонение 
+        их доходностей.
+
+        Аргументы:
+            instruments_income, numpy.array - матрица доходностей инструментов
+
+        Возвращаемое значение:
+            volatility, numpy.array - вектор волатильности инструементов длины 
+                                      равной количеству инструментов.
+    """
     
     def std (vector):
         return np.sqrt(np.sum((vector - vector.mean())**2) / (len(vector) - 1))
@@ -159,6 +232,9 @@ def draw_cumpnl(df, cumpnl, dates):
 
 
 def AlphaStats(alpha_states, df):
+    """
+        Расчитывает ежегодную статистику по альфе за все года.
+    """
     format = '%Y-%m-%d'
     year_start = '-01-01'
     year_end = '-12-31'
