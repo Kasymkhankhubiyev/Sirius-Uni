@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as  pd
+import matplotlib.pyplot as plt
+import datetime
 
 def neutralize(alpha: np.array) -> np.array:
     """
@@ -20,7 +22,7 @@ def neutralize(alpha: np.array) -> np.array:
     if len(alpha.shape) == 1:
         return alpha - (alpha.sum() / len(alpha))
     else: # if alpha is a matrix of states
-        alpha_states_neutralized = np.array([neutralize(alpha[i]) for i in range(len(alpha))])
+        alpha_states_neutralized = np.array([neutralize(_alpha) for _alpha in alpha])
         return alpha_states_neutralized
 
 
@@ -43,7 +45,7 @@ def normalize(alpha: np.array) -> np.array:
     if len(alpha.shape) == 1:
         return alpha / np.abs(alpha).sum()
     else: # if alpha is a matrix of states
-        alpha_states_normalized = np.array([normalize(alpha[i]) for i in range(len(alpha))])
+        alpha_states_normalized = np.array([_alpha / np.abs(_alpha).sum() for _alpha in alpha])
         return alpha_states_normalized
 
 
@@ -144,4 +146,93 @@ def count_instruments_volatility (instruments_incomes):
     volatility = np.array([std(vector) for vector in instruments_incomes.T]) 
 
     return volatility
+
+
+def draw_cumpnl(df, cumpnl, dates):
+    dates = df.columns[1:]
+    plt.plot(cumpnl, label='cumpnl')
+    plt.xlabel('date')
+    plt.ylabel('cumpnl')
+    plt.xticks(np.arange(0, len(dates), 100), dates[np.arange(0, len(dates), 100)], rotation=45)
+    plt.legend()
+    plt.show()
+
+
+def AlphaStats(alpha_states, df):
+    format = '%Y-%m-%d'
+    year_start = '-01-01'
+    year_end = '-12-31'
+
+    # get all dates list
+    dates = df.columns[1:]
+
+    # get unique years in dates list
+    dates_years = np.unique(np.array([date.split('-')[0] for date in dates]))
+
+    # convert date strings into datetime.date to compare
+    dates = np.array(pd.to_datetime(dates,format='%Y-%m-%d').date)
+
+    # make years borders
+    years_borders = np.array([(datetime.datetime.strptime(year+year_start, format).date(), 
+                      datetime.datetime.strptime(year+year_end, format).date()) for year in dates_years])
+
+    # get instruments return matrix 
+    return_matrix = instrument_return(df)
+
+    cumpnl = np.array([0])
+
+    annual_cumpnl = []
+    annual_sharpe = []
+    ave_annual_turnover = []
+    annual_drawdown = []
+
+    for idx, year_date in enumerate(years_borders):
+        start, end = year_date
+        
+        # get indexes of the current year
+        indexes = np.where((start <= dates) & (end >= dates) , True, False)
+
+        # get alphas for the specific year
+        current_year_alpha_states = alpha_states[indexes]
+
+        # get return_vectors for the specific time interval
+        current_income_matrix = return_matrix[indexes]
+
+        # get alpha_pnl_vector
+        current_alpha_pnl = alpha_income(current_year_alpha_states, current_income_matrix)
+
+        # get cumpnl_vector
+        current_alpha_cumpnl_vec = cumulative_pnl(current_alpha_pnl)
+
+        # add the year's cumpnl
+        annual_cumpnl.append(current_alpha_cumpnl_vec[-1])
+
+        # add the year's sharpe
+        annual_sharpe.append(calc_sharpe(current_alpha_pnl))
+
+        # get turnover for the current_year
+        turnover_vec = turnover(current_year_alpha_states)
+
+        # add the current year average turnover
+        ave_annual_turnover.append(turnover_vec.sum() / len(turnover_vec))
+
+        # find the current year max drawdown
+        drawdown, drawdown_start, drawdown_end = find_drawdown(current_alpha_cumpnl_vec)
+
+        # add the current year drawdown
+        annual_drawdown.append(drawdown)
+
+        # concate cumpnl_vec
+        cumpnl = np.concatenate((cumpnl, current_alpha_cumpnl_vec + cumpnl[-1]), axis=None)
+
+    # draw cumpnl
+    draw_cumpnl(df, cumpnl[1:], df.columns[1:])
+
+    # return annual data as pd.DataFrame
+    annual_df = pd.DataFrame({'Year': dates_years,
+                             'Sharpe': annual_sharpe,
+                             'Average Turnover': ave_annual_turnover,
+                             'Max Drawdown': annual_drawdown})
+
+    return annual_df
 
