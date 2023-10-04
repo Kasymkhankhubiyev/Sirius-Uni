@@ -1,5 +1,5 @@
 import numpy as np
-from helper import normalize
+from helper import normalize, neutralize_with_dropout
 
 
 def truncate_alpha(alpha, treshold=0.1):
@@ -31,19 +31,30 @@ def rank (alpha):
     return alpha   
 
 
-def CutOutliers(alpha, n):
+def CutOutliers(alpha, n, make_tf_vec=False):
     # TODO scale it for matrixes.
-    indexes = np.argsort(alpha)
+    if len(alpha.shape) == 1:
+        indexes = np.argsort(alpha)
 
-    _indexes = np.concatenate((indexes[:n], indexes[len(alpha) - n : len(alpha)]), axis=None)
-    # print(len(indexes))
-    
-    for idx in _indexes:
-        alpha[idx] = 0
+        false_true_vec = np.ones(indexes.shape)
 
-    print(f'Alpha Sorted: {alpha[indexes]}')
+        _indexes = np.concatenate((indexes[:n], indexes[len(alpha) - n : len(alpha)]), axis=None)
+        # print(len(indexes))
+        
+        for idx in _indexes:
+            alpha[idx] = 0
+            false_true_vec[idx] = 0
 
-    return alpha
+        if make_tf_vec:
+            return alpha, false_true_vec
+        return alpha
+    else:
+        new_matrix = []
+        
+        for _alpha in alpha:
+            new_alpha, false_true_vec = CutOutliers(_alpha)
+            new_matrix.append()
+
 
 
 def CutMiddle(alpha, n):

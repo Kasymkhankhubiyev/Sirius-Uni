@@ -68,6 +68,11 @@ def normalize(alpha: np.array) -> np.array:
     else: # if alpha is a matrix of states
         alpha_states_normalized = np.array([_alpha / np.abs(_alpha).sum() for _alpha in alpha])
         return alpha_states_normalized
+    
+
+def normalize_with_dropout():
+    # TODO make this function
+    pass
 
 
 def make_alphas_state_matrix_with_day_step(df: pd.DataFrame, days_step: int, strategy=None):
