@@ -32,6 +32,7 @@ def rank (alpha):
 
 
 def CutOutliers(alpha, n):
+    # TODO scale it for matrixes.
     indexes = np.argsort(alpha)
 
     _indexes = np.concatenate((indexes[:n], indexes[len(alpha) - n : len(alpha)]), axis=None)
