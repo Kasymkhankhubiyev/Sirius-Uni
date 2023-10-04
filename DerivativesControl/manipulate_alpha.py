@@ -31,12 +31,12 @@ def rank (alpha):
     return alpha   
 
 
-def CutOutliers(alpha, n, make_tf_vec=False):
+def CutOutliers(alpha, n, make_tf_vec=True):
     # TODO scale it for matrixes.
     if len(alpha.shape) == 1:
         indexes = np.argsort(alpha)
 
-        false_true_vec = np.ones(indexes.shape)
+        false_true_vec = np.ones(len(indexes))
 
         _indexes = np.concatenate((indexes[:n], indexes[len(alpha) - n : len(alpha)]), axis=None)
         # print(len(indexes))
@@ -45,15 +45,22 @@ def CutOutliers(alpha, n, make_tf_vec=False):
             alpha[idx] = 0
             false_true_vec[idx] = 0
 
-        if make_tf_vec:
-            return alpha, false_true_vec
-        return alpha
+        # if make_tf_vec:
+        return alpha, false_true_vec
+    
+        # return normalize(neutralize_with_dropout())
     else:
         new_matrix = []
+        true_false_matrix = []
         
         for _alpha in alpha:
-            new_alpha, false_true_vec = CutOutliers(_alpha)
-            new_matrix.append()
+            new_alpha, false_true_vec = CutOutliers(_alpha, n, True)
+            new_matrix.append(new_alpha)
+            true_false_matrix.append(false_true_vec)
+
+        new_matrix = normalize(neutralize_with_dropout(np.array(new_matrix), np.array(true_false_matrix)))
+
+        return np.array(new_matrix)
 
 
 
