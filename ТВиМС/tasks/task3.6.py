@@ -43,26 +43,39 @@ def run(start=1, end=1000, mod=5, first_fig=1, figs_num=2) -> None:
 
     print(primes)
 
-    multiples = np.zeros(len(primes), dtype=int)
-    starts_from_certain_fig = np.zeros(len(primes), dtype=int)
-    certain_figs_number = np.zeros(len(primes), dtype=int)
+    """
+    A = сумма цифр простого числа кратна 5
+    В = простое число начинается с 1
+    С = простое число двухзначное
+    """
+
+    A = np.zeros(len(primes), dtype=int)
+    B = np.zeros(len(primes), dtype=int)
+    C = np.zeros(len(primes), dtype=int)
 
     # сохраним соответствующие индексы
     for idx, prime in enumerate(primes):
         if is_multiple(prime, mod):
-            multiples[idx] = 1
+            A[idx] = 1
         if check_first_figure(prime, first_fig):
-            starts_from_certain_fig[idx] = 1
+            B[idx] = 1
         if check_figs_number(prime, figs_num):
-            certain_figs_number[idx] = 1
+            C[idx] = 1
 
-    print(multiples.sum(), starts_from_certain_fig.sum(), certain_figs_number.sum())
+    print(A.sum(), B.sum(), C.sum())
 
-    A_and_C = np.where((multiples == 1) & (certain_figs_number == 1), 1, 0)
-    A_or_C = np.where((multiples == 1) | (certain_figs_number == 1), 1, 0)
+    A_and_C = np.where((A == 1) & (C == 1), 1, 0)
+    A_or_C = np.where((A == 1) | (C == 1), 1, 0)
 
-    A_and_C_except_B = np.where(starts_from_certain_fig == 1, 0, A_and_C)
-    A_or_C_except_B = np.where(starts_from_certain_fig == 1, 0, A_or_C)
+    A_and_C_and_B = np.where(B == 1, A_and_C, 0)
+    A_or_C_and_B = np.where(B == 1, A_or_C, 0)
+
+
+    A_and_C_except_B = np.where(B == 1, 0, A_and_C)
+    A_or_C_except_B = np.where(B == 1, 0, A_or_C)
+
+    print(f'Вероятность события (A & C)B = {A_and_C_and_B.sum()} / {len(primes)} = {A_and_C_and_B.sum() / len(primes)}')
+    print(f'Вероятность события (A \/ C)B = {A_or_C_and_B.sum()} / {len(primes)} = {A_or_C_and_B.sum() / len(primes)}')
 
     print(f'Вероятность события (A & C)\B = {A_and_C_except_B.sum()} / {len(primes)} = {A_and_C_except_B.sum() / len(primes)}')
     print(f'Вероятность события (A \/ C)\B = {A_or_C_except_B.sum()} / {len(primes)} = {A_or_C_except_B.sum() / len(primes)}')
