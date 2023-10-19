@@ -41,8 +41,6 @@ def run(start=1, end=1000, mod=5, first_fig=1, figs_num=2) -> None:
         if is_prime(number):
             primes.append(number)
 
-    print(primes)
-
     """
     A = сумма цифр простого числа кратна 5
     В = простое число начинается с 1
@@ -62,23 +60,29 @@ def run(start=1, end=1000, mod=5, first_fig=1, figs_num=2) -> None:
         if check_figs_number(prime, figs_num):
             C[idx] = 1
 
-    print(A.sum(), B.sum(), C.sum())
+    print(A.sum(), B.sum(), C.sum(), '\n')
 
     A_and_C = np.where((A == 1) & (C == 1), 1, 0)
     A_or_C = np.where((A == 1) | (C == 1), 1, 0)
+    A_sim_dif_C = np.where(((A == 0) & (C == 1)) | ((A == 1) & (C == 0)), 1, 0)
 
     A_and_C_and_B = np.where(B == 1, A_and_C, 0)
     A_or_C_and_B = np.where(B == 1, A_or_C, 0)
+    A_sim_dif_C_and_B = np.where(B==1, A_sim_dif_C, 0)
 
 
     A_and_C_except_B = np.where(B == 1, 0, A_and_C)
     A_or_C_except_B = np.where(B == 1, 0, A_or_C)
+    A_sim_dif_C_except_B = np.where(B==1, 0, A_sim_dif_C)
 
     print(f'Вероятность события (A & C)B = {A_and_C_and_B.sum()} / {len(primes)} = {A_and_C_and_B.sum() / len(primes)}')
     print(f'Вероятность события (A \/ C)B = {A_or_C_and_B.sum()} / {len(primes)} = {A_or_C_and_B.sum() / len(primes)}')
+    print(f'Вероятность события (A /\ C)B = {A_sim_dif_C_and_B.sum()} / {len(primes)} = {A_sim_dif_C_and_B.sum() / len(primes)}')
 
+    print('\n')
     print(f'Вероятность события (A & C)\B = {A_and_C_except_B.sum()} / {len(primes)} = {A_and_C_except_B.sum() / len(primes)}')
     print(f'Вероятность события (A \/ C)\B = {A_or_C_except_B.sum()} / {len(primes)} = {A_or_C_except_B.sum() / len(primes)}')
+    print(f'Вероятность события (A /\ C)\B = {A_sim_dif_C_except_B.sum()} / {len(primes)} = {A_sim_dif_C_except_B.sum() / len(primes)}')
 
 
 
