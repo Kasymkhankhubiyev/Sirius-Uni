@@ -28,9 +28,13 @@ def test1(alpha):
 def test2(alpha):
     try:
         if len(alpha.shape) == 1:
-            assert abs(np.sum(np.abs(alpha)) - 1.0) <= TRESHOLD
+            if not np.array_equal(alpha, np.zeros_like(alpha)):
+                assert abs(np.sum(np.abs(alpha)) - 1.0) <= TRESHOLD
         else:
-            assert len(np.where(np.abs(np.sum(np.abs(alpha), axis=1) - 1.0) > TRESHOLD)[0]) == 0
+            for _alpha in alpha:
+                if not np.array_equal(alpha, np.zeros_like(alpha)):
+                    assert abs(np.sum(np.abs(_alpha)) - 1.0) <= TRESHOLD
+                    # assert len(np.where(np.abs(np.sum(np.abs(alpha), axis=1) - 1.0) > TRESHOLD)[0]) == 0
         print('Normality test passed')
 
     except Exception as e:

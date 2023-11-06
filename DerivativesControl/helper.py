@@ -30,21 +30,33 @@ def neutralize_with_dropout(alpha, true_false_vector):
     """
         Функция  нейтрализации с выбросом - т.е. сохраняем нули в указанных позициях.
     """
+    if len(alpha.shape) == 1:
+        indexes = np.array([j for j in range(len(true_false_vector)) if true_false_vector[j] == 1])
 
-    indexes = np.array([
-        np.array([j for j in range(len(true_false_vector[i])) if true_false_vector[i][j] == 1])
-                for i in range(len(true_false_vector))])
-    
-    _alpha = np.array(np.array([alpha[i][indexes[i]] for i in range(len(indexes))]))
-    _alpha = neutralize(_alpha)
+        _alpha = np.array([alpha[indexes[i]] for i in range(len(indexes))])
+        _alpha = neutralize(_alpha)
 
-    for i, (_index, sub_alpha) in enumerate(zip(indexes, alpha)):
-        for _idx, idx in enumerate(_index):
-            sub_alpha[idx] = _alpha[i][_idx]
+        for _idx, idx in enumerate(indexes):
+            alpha[idx] = _alpha[_idx]
+
+        return alpha
+
+    else:
+
+        indexes = np.array([
+            np.array([j for j in range(len(true_false_vector[i])) if true_false_vector[i][j] == 1])
+                    for i in range(len(true_false_vector))])
+        
+        _alpha = np.array(np.array([alpha[i][indexes[i]] for i in range(len(indexes))]))
+        _alpha = neutralize(_alpha)
+
+        for i, (_index, sub_alpha) in enumerate(zip(indexes, alpha)):
+            for _idx, idx in enumerate(_index):
+                sub_alpha[idx] = _alpha[i][_idx]
         
     # alpha = normalize(alpha)
 
-    return alpha
+        return alpha
 
 
 def normalize(alpha: np.array) -> np.array:
@@ -62,11 +74,15 @@ def normalize(alpha: np.array) -> np.array:
                                                  матрица состояний альфы
         
     """
+    
     # if alpha is a vector
     if len(alpha.shape) == 1:
         return alpha / np.abs(alpha).sum()
     else: # if alpha is a matrix of states
-        alpha_states_normalized = np.array([_alpha / np.abs(_alpha).sum() for _alpha in alpha])
+        alpha_states_normalized = np.zeros_like(alpha)
+        for idx, _alpha in enumerate(alpha):
+            if not np.array_equal(_alpha, np.zeros_like(_alpha)):
+                alpha_states_normalized[idx] += _alpha / np.abs(_alpha).sum()
         return alpha_states_normalized
 
 
@@ -334,5 +350,22 @@ def AlphaStats(alpha_states, df):
                              'Max Drawdown': annual_drawdown,
                              'Cumpnl': annual_cumpnl})
 
-    return annual_df
+    return annual_df, cumpnl[1:]
+
+
+def calc_alphas_corr(alpha1, alpha2):
+    
+    def std (vector):
+        """
+            Несмещенная оценка стандратного отклонения
+
+            math:: `\sigma = \sqrt{\frac{\Sigma_{i=0}^n(x_i - \bar{x})}{n-1}}`
+        """
+        return np.sqrt(np.sum((vector - vector.mean())**2) / (len(vector) - 1))
+
+    # чтобы получить несмещенную формулу, умножил и разделил на длину -1 
+
+    corr = np.sum((alpha1 - alpha1.mean()) * (alpha2 - alpha2.mean()))/ (len(alpha1) - 1) / (std(alpha1) * std(alpha2))
+
+    return corr
 

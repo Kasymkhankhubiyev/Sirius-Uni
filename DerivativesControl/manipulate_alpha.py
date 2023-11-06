@@ -39,44 +39,49 @@ def CutOutliers(alpha, n, make_tf_vec=True):
         false_true_vec = np.ones(len(indexes))
 
         _indexes = np.concatenate((indexes[:n], indexes[len(alpha) - n : len(alpha)]), axis=None)
-        # print(len(indexes))
         
         for idx in _indexes:
             alpha[idx] = 0
             false_true_vec[idx] = 0
 
-        # if make_tf_vec:
         return alpha, false_true_vec
     
-        # return normalize(neutralize_with_dropout())
     else:
-        new_matrix = []
-        true_false_matrix = []
+        new_matrix = np.zeros_like(alpha)
         
-        for _alpha in alpha:
-            new_alpha, false_true_vec = CutOutliers(_alpha, n, True)
-            new_matrix.append(new_alpha)
-            true_false_matrix.append(false_true_vec)
-
-        new_matrix = normalize(neutralize_with_dropout(np.array(new_matrix), np.array(true_false_matrix)))
-
-        return np.array(new_matrix)
-
+        for idx, _alpha in enumerate(alpha):
+            if not np.array_equal(_alpha, np.zeros_like(_alpha)):
+                new_alpha, false_true_vec = CutOutliers(_alpha, n, True)
+                new_matrix[idx] += normalize(neutralize_with_dropout(new_alpha, false_true_vec))
+               
+        return new_matrix
 
 
 def CutMiddle(alpha, n):
-    indexes = np.argsort(alpha)
 
-    borders = [len(alpha) // 2 - n // 2, len(alpha) // 2 + n // 2 + n%2]
+    if len(alpha.shape) == 1:
 
-    _indexes = indexes[np.arange(borders[0]-1, borders[1]-1)]
+        indexes = np.argsort(alpha)
+        false_true_vec = np.ones(len(indexes))
 
-    for idx in _indexes:
-        alpha[idx] = 0
+        borders = [len(alpha) // 2 - n // 2, len(alpha) // 2 + n // 2 + n%2]
 
-    print(f'Alpha sorted: {alpha[indexes]}')
+        _indexes = indexes[np.arange(borders[0]-1, borders[1]-1)]
 
-    return alpha
+        for idx in _indexes:
+            alpha[idx] = 0
+            false_true_vec[idx] = 0
+
+        return alpha, false_true_vec
+    else:
+        new_matrix = np.zeros_like(alpha)
+        
+        for idx, _alpha in enumerate(alpha):
+            if not np.array_equal(_alpha, np.zeros_like(_alpha)):
+                new_alpha, false_true_vec = CutMiddle(_alpha, n)
+                new_matrix[idx] += normalize(neutralize_with_dropout(new_alpha, false_true_vec))
+               
+        return new_matrix
 
 
 def calc_alphas_corr(alpha1, alpha2):
@@ -91,14 +96,12 @@ def calc_alphas_corr(alpha1, alpha2):
 def decay (alpha_matrix, n): # decrease turnover
     factors = (np.arange(1, n + 2)) / (n+1)
 
-    _alpha = alpha_matrix[len(alpha_matrix)-n-1:] * np.array([factors]).T
-    
-    _alpha = normalize(_alpha.sum(axis=0))
+    _new_alpha_states = np.zeros_like(alpha_matrix)
 
-    # _alpha = np.zeros(alpha_states.shape[1])
-
-    # for t in range(n+1):
-    #     _alpha += alpha_states[len(alpha_states)-n-1+t] * (t+1) / (n+1)
+    for idx in range(n+1, len(alpha_matrix)):
+        _alpha = alpha_matrix[idx-n-1:idx] * np.array([factors]).T
+        if not np.array_equal(_alpha, np.zeros_like(_alpha)):
+            _new_alpha_states[idx] += normalize(_alpha.sum(axis=0))
     
-    return _alpha
+    return _new_alpha_states 
 
