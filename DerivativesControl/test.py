@@ -1,6 +1,6 @@
 import numpy as np
 
-TRESHOLD = 1e-4
+TRESHOLD = 1e-10
 YEAR = 'Year'
 SHARPE = 'Sharpe'
 AVERAGE_TURNOVER = 'Average Turnover'
@@ -18,11 +18,13 @@ def test1(alpha):
         if len(alpha.shape) == 1:
             assert abs(alpha.sum()) <= TRESHOLD
         else:
-            assert len(np.where(np.abs(alpha.sum(axis=1)) > TRESHOLD)[0]) == 0
+            assert np.where(np.abs(alpha.sum(axis=1)) >= TRESHOLD, 1, 0).sum() == 0
+        
         print('Neutrality test passed')
-
-    except Exception as e:
+    except AssertionError as e:
         print('Neutrality test is not passed')
+    except Exception as e:
+        print(f'{e.args}')
 
 
 def test2(alpha):
@@ -31,14 +33,14 @@ def test2(alpha):
             if not np.array_equal(alpha, np.zeros_like(alpha)):
                 assert abs(np.sum(np.abs(alpha)) - 1.0) <= TRESHOLD
         else:
-            for _alpha in alpha:
-                if not np.array_equal(alpha, np.zeros_like(alpha)):
-                    assert abs(np.sum(np.abs(_alpha)) - 1.0) <= TRESHOLD
-                    # assert len(np.where(np.abs(np.sum(np.abs(alpha), axis=1) - 1.0) > TRESHOLD)[0]) == 0
+            assert np.where(abs(np.abs(alpha).sum(axis=1) - 1.0) <= TRESHOLD, 0, 1).sum() == 0
+        
         print('Normality test passed')
+    except AssertionError as e:
+        print('Normality test is not passed')
 
     except Exception as e:
-        print('Normality test is not passed')
+        print(f'{e.args}')
 
 
 def test3(alpha_data):

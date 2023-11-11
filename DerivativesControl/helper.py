@@ -20,7 +20,10 @@ def neutralize(alpha: np.array) -> np.array:
     """
     # if alpha is a vector
     if len(alpha.shape) == 1:
-        return alpha - (alpha.sum() / len(alpha))
+        if not np.array_equal(alpha, np.zeros_like(alpha)):
+            return alpha - (alpha.sum() / len(alpha))
+        else:
+            return alpha
     else: # if alpha is a matrix of states
         alpha_states_neutralized = np.array([neutralize(_alpha) for _alpha in alpha])
         return alpha_states_neutralized
@@ -28,12 +31,13 @@ def neutralize(alpha: np.array) -> np.array:
 
 def neutralize_with_dropout(alpha, true_false_vector):
     """
-        Функция  нейтрализации с выбросом - т.е. сохраняем нули в указанных позициях.
+        Функция  нейтрализации с выбросом - т.е. 
+            сохраняем нули в указанных позициях.
     """
     if len(alpha.shape) == 1:
-        indexes = np.array([j for j in range(len(true_false_vector)) if true_false_vector[j] == 1])
+        indexes = [j for j in range(len(true_false_vector)) if true_false_vector[j] == 1]
 
-        _alpha = np.array([alpha[indexes[i]] for i in range(len(indexes))])
+        _alpha =  alpha[indexes] # np.array([alpha[i] for i in indexes])
         _alpha = neutralize(_alpha)
 
         for _idx, idx in enumerate(indexes):
@@ -43,20 +47,13 @@ def neutralize_with_dropout(alpha, true_false_vector):
 
     else:
 
-        indexes = np.array([
-            np.array([j for j in range(len(true_false_vector[i])) if true_false_vector[i][j] == 1])
-                    for i in range(len(true_false_vector))])
-        
-        _alpha = np.array(np.array([alpha[i][indexes[i]] for i in range(len(indexes))]))
-        _alpha = neutralize(_alpha)
+        new_alpha = np.zeros_like(alpha)
 
-        for i, (_index, sub_alpha) in enumerate(zip(indexes, alpha)):
-            for _idx, idx in enumerate(_index):
-                sub_alpha[idx] = _alpha[i][_idx]
-        
-    # alpha = normalize(alpha)
+        for idx, (_alpha, zeros_vec) in enumerate(zip(alpha, true_false_vector)):
+            if not np.array_equal(_alpha, np.zeros_like(_alpha)):
+                new_alpha[idx] += neutralize_with_dropout(_alpha, zeros_vec)
 
-        return alpha
+        return new_alpha
 
 
 def normalize(alpha: np.array) -> np.array:
@@ -78,11 +75,18 @@ def normalize(alpha: np.array) -> np.array:
     # if alpha is a vector
     if len(alpha.shape) == 1:
         return alpha / np.abs(alpha).sum()
+    
     else: # if alpha is a matrix of states
         alpha_states_normalized = np.zeros_like(alpha)
+
         for idx, _alpha in enumerate(alpha):
-            if not np.array_equal(_alpha, np.zeros_like(_alpha)):
+
+            # if  not np.array_equal(_alpha, np.zeros_like(_alpha)):
+            if np.abs(_alpha).sum() != 0:
                 alpha_states_normalized[idx] += _alpha / np.abs(_alpha).sum()
+            else:
+                alpha_states_normalized[idx] += _alpha
+
         return alpha_states_normalized
 
 
@@ -256,6 +260,12 @@ def count_instruments_volatility (instruments_incomes):
     volatility = np.array([std(vector) for vector in instruments_incomes.T]) 
 
     return volatility
+
+
+def merge_zeros(zero_matrix1, zero_matrix2):
+    new_matrix = zero_matrix1
+    new_matrix = np.where(zero_matrix2 == 0, zero_matrix2, new_matrix)
+    return new_matrix
 
 
 def draw_cumpnl(df, cumpnl, dates):
