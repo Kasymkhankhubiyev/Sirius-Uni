@@ -363,19 +363,29 @@ def AlphaStats(alpha_states, df):
     return annual_df, cumpnl[1:]
 
 
-def calc_alphas_corr(alpha1, alpha2):
-    
-    def std (vector):
-        """
-            Несмещенная оценка стандратного отклонения
+def std (vector):
+    """
+        Несмещенная оценка стандратного отклонения
 
-            math:: `\sigma = \sqrt{\frac{\Sigma_{i=0}^n(x_i - \bar{x})}{n-1}}`
-        """
-        return np.sqrt(np.sum((vector - vector.mean())**2) / (len(vector) - 1))
+        math:: `\sigma = \sqrt{\frac{\Sigma_{i=0}^n(x_i - \bar{x})}{n-1}}`
+    """
+    return np.sqrt(np.sum((vector - vector.mean())**2) / (len(vector) - 1))
+
+
+
+def calc_alphas_corr(alpha1, alpha2):
 
     # чтобы получить несмещенную формулу, умножил и разделил на длину -1 
 
     corr = np.sum((alpha1 - alpha1.mean()) * (alpha2 - alpha2.mean()))/ (len(alpha1) - 1) / (std(alpha1) * std(alpha2))
 
     return corr
+
+def ts_correlation(x, y):
+    corr_vec = np.zeros(x.shape[1])
+
+    for idx, (_x, _y) in enumerate(zip(x, y)):
+        corr_vec[idx] = calc_alphas_corr(_x, _y)
+
+    return corr_vec
 
