@@ -134,12 +134,15 @@ def instrument_return(df=None, close_prices=None):
 
 
 def alpha_income(alpha_states, return_vector):
+    # TODO check if new income calculus is appropriate 
     """
         Функция расчета доходности альфы.
     """
     alpha_income_vector = np.zeros(alpha_states.shape[0])
-    for i in range(len(alpha_states)-1):
-        alpha_income_vector[i] += np.dot(alpha_states[i],return_vector[i+1])
+    # for i in range(len(alpha_states)-1):
+    for i in range(2, len(alpha_states)):
+        # alpha_income_vector[i] += np.dot(alpha_states[i],return_vector[i+1])
+        alpha_income_vector[i] += np.dot(alpha_states[i-2],return_vector[i-1])
         
     return alpha_income_vector
 

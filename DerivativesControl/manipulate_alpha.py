@@ -22,8 +22,6 @@ def truncate_alpha(alpha, treshold=0.1):
                 elif item < 0: # -1e-10:
                     alpha[idx] = alpha[idx] / (2 * sum_short)
 
-            # alpha = np.where(np.abs(alpha) < 1e-12, 0, alpha)
-
         return alpha
     
     else:
