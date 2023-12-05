@@ -9,6 +9,7 @@ def truncate_alpha(alpha, treshold=0.1):
         _treshold = treshold * 0.9
         
         while np.where(np.abs(alpha) > _treshold, 1, 0).sum() > 0 and iter <= 100:
+            iter += 1
 
             alpha = np.where(np.abs(alpha) > _treshold, _treshold * np.sign(alpha), alpha)
         
@@ -25,10 +26,13 @@ def truncate_alpha(alpha, treshold=0.1):
         return alpha
     
     else:
+        # while np.where(np.abs(alpha) > _treshold, 1, 0).sum() > 0 and iter <= 100:
         new_alpha = np.zeros_like(alpha)
         for idx, _alpha in enumerate(alpha):
             # if _alpha.sum() > 1e-12:
             new_alpha[idx] = truncate_alpha(_alpha, treshold)
+
+        alpha = new_alpha
 
         return new_alpha
 
@@ -43,12 +47,12 @@ def rank (alpha):
     return alpha
 
 
-def truncate_with_drop_out(alpha, true_false_vec):
+def truncate_with_drop_out(alpha, true_false_vec, treshold=0.1):
     new_alpha = np.zeros_like(alpha)
     for idx, (_alpha, zero_vec) in enumerate(zip(alpha, true_false_vec)):
         if _alpha.sum() != 0:
             indexes = [i for i in range(len(zero_vec)) if zero_vec[i] == 1]
-            __alpha = truncate_alpha(_alpha[indexes])
+            __alpha = truncate_alpha(_alpha[indexes], treshold)
             for i in range(len(indexes)):
                 _alpha[indexes[i]] = __alpha[i]
             new_alpha[idx] += _alpha
