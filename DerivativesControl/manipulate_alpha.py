@@ -1,8 +1,11 @@
 import numpy as np
-from helper import normalize, neutralize_with_dropout
+from helper import normalize, neutralize_with_dropout, std
 
 
 def truncate_alpha(alpha, treshold=0.1):
+    """
+    
+    """
     if len(alpha.shape) == 1:
         iter = 0
         # we take it a little smaller in advance
@@ -37,8 +40,12 @@ def truncate_alpha(alpha, treshold=0.1):
         return new_alpha
 
 
-def rank (alpha):
+def rank (_alpha):
+    """
+    
+    """
     # получаем индексы по которым сортируется массив
+    alpha = np.zeros_like(_alpha)
     sorted_indexes = np.argsort(alpha)
 
     for _idx, index in enumerate(sorted_indexes):
@@ -48,6 +55,9 @@ def rank (alpha):
 
 
 def truncate_with_drop_out(alpha, true_false_vec, treshold=0.1):
+    """
+    
+    """
     new_alpha = np.zeros_like(alpha)
     for idx, (_alpha, zero_vec) in enumerate(zip(alpha, true_false_vec)):
         if _alpha.sum() != 0:
@@ -61,6 +71,9 @@ def truncate_with_drop_out(alpha, true_false_vec, treshold=0.1):
 
 
 def CutOutliers(alpha, n, make_tf_vec=True):
+    """
+    
+    """
     
     if len(alpha.shape) == 1:
         indexes = np.argsort(alpha)
@@ -90,6 +103,9 @@ def CutOutliers(alpha, n, make_tf_vec=True):
 
 
 def CutMiddle(alpha, n):
+    """
+    
+    """
 
     if len(alpha.shape) == 1:
 
@@ -122,6 +138,9 @@ def CutMiddle(alpha, n):
 
 
 def calc_alphas_corr(alpha1, alpha2):
+    """
+    
+    """
     def std (vector):
         return np.sqrt(np.sum((vector - vector.mean())**2) / (len(vector) - 1))
 
@@ -130,23 +149,38 @@ def calc_alphas_corr(alpha1, alpha2):
     return corr
 
 
-def decay (alpha_matrix, n): # decrease turnover
+def decay (alpha_matrix, n):
+    """
+        Decreases a turnover of a given alpha accounting n days
+
+        `math:`
+    """
+    
     factors = (np.arange(1, n + 2)) / (n+1)
 
-    _new_alpha_states = np.zeros_like(alpha_matrix)
+    _new_alpha_states = alpha_matrix.copy()
 
     for idx in range(n+1, len(alpha_matrix)):
         _alpha = alpha_matrix[idx-n-1:idx] * np.array([factors]).T
         if not np.array_equal(_alpha, np.zeros_like(_alpha)):
-            _new_alpha_states[idx] += _alpha.sum(axis=0)
+            _new_alpha_states[idx] = _alpha.sum(axis=0)
     
     return _new_alpha_states 
 
 
 def crop(alpha, treshold=0.1):
+    """
+        Crops a given alpha with a given position module width called a treshold.
+        So the function replaces all the positions which module is greater than treshold with
+        a treshold with a corresponding sign
+
+        Arguments:
+
+        Returns:
+    """
     if len(alpha.shape) == 1:
         iter = 0
-        
+
         alpha = np.where(np.abs(alpha) <= treshold, alpha, treshold * np.sign(alpha))
 
         return alpha
@@ -158,3 +192,84 @@ def crop(alpha, treshold=0.1):
 
         return new_alpha
 
+
+def ts_correlation(x, y):
+    """
+    
+    """
+    corr_vec = np.zeros(x.shape[1])
+
+    for idx, (_x, _y) in enumerate(zip(x, y)):
+        corr_vec[idx] = calc_alphas_corr(_x, _y)
+
+    return corr_vec
+
+
+def open_volume_corr_filter(open, volume):
+    """
+    `math: correlation(open, volume)`
+    """
+    return ts_correlation(open, volume)
+
+
+def average_dayly_volume(volume, day_step):
+    """
+    
+    """
+    adv = np.zeros_like(volume)
+
+    for i in range(day_step, len(volume)):
+        adv[i] = volume[i-day_step:i].mean(axis=0)
+
+    return adv
+
+
+def ts_min(matrix):
+    """
+    
+    """
+    return np.min(matrix, axis=0)
+
+
+def ts_max(matrix):
+    """
+    
+    """
+    return np.max(matrix, axis=0)
+
+
+def covarience(vector1, vector2):
+    """
+    
+    """
+    return np.sum((vector1 - vector1.mean()) * (vector2 - vector2.mean()), axis=0)
+
+
+def rolling_std(matrix):
+    """
+    
+    """
+    std_vector = np.zeros(matrix.shape[-1])
+    for i in range(len(std_vector)):
+        std_vector[i] = std(matrix.T[i])
+
+    return std_vector
+
+
+def ts_rank(time_series):
+    result = np.zeros(time_series.shape[1])
+
+    for i in range(len(result)):
+        result[i] = rank(time_series.T[i])[-1]
+
+    return result
+
+
+def scale(matrix, a):
+    """
+    
+    """
+    for i in range(len(matrix)):
+        if np.abs(matrix[i]).sum() != 0:
+            matrix[i] = matrix[i] * 2 / np.abs(matrix[i]).sum()
+    return matrix
